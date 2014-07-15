@@ -16,7 +16,7 @@
 
 
 #define AS_DBG
-//#define AS_DBG_Explain
+#define AS_DBG_Explain
 
 #ifdef AS_DBG || AS_DBG_Explain
 	#include "utility/Serial.h"

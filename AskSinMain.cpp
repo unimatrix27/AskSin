@@ -23,8 +23,8 @@ uint8_t bCast[] = {0,0,0,0};													// broad cast address
 //- homematic public protocol functions
 void     HM::init(void) {
 	#ifdef AS_DBG || AS_DBG_Explain
-		Serial.begin(57600);													// serial setup
-		//Serial << F("AskSin debug enabled...\n");								// ...and some information
+		//Serial.begin(57600);													// serial setup
+		Serial << F("AskSin debug enabled...\n");								// ...and some information
 	#endif
 
 	// register handling setup
