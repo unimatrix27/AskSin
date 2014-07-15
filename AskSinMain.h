@@ -15,8 +15,8 @@
 #endif
 
 
-#define AS_DBG
-#define AS_DBG_Explain
+//#define AS_DBG
+//#define AS_DBG_Explain
 
 #ifdef AS_DBG || AS_DBG_Explain
 	#include "utility/Serial.h"
@@ -171,6 +171,7 @@ class HM {
 	// debugging
 	void     sendPeerWEATHER(uint8_t cnl, uint16_t temp, uint8_t hum, uint16_t pres, uint32_t lux);
 	void     sendPeerRAW(uint8_t cnl, uint8_t type, uint8_t *data, uint8_t len);		// send event to all peers listed in the peers database by channel, type specifies the type of the message, data and len delivers the content of the event
+	void 	 sendSensorData(uint32_t energyCounter, uint32_t power, uint16_t current, uint16_t voltage, uint8_t frequency); // send sensor data event 
 	void     send_ACK(void);															// , ACK sending function
 	void     send_NACK(void);															// , NACK sending function
 

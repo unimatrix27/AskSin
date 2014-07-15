@@ -19,7 +19,7 @@
 #include "utility/Helpers.h"
 #include "utility/Fastdelegate.h"
 
-//#define DM_DBG																		// debug message flag
+#define DM_DBG																		// debug message flag
 
 class Relay {
   //- user code here ------------------------------------------------------------------------------------------------------

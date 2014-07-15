@@ -109,7 +109,7 @@ void    CC110x::init(void) {															// initialize CC1101
 	cmdStrobe(CC1101_SWORRST);															// reset real time clock
 
 	#if defined(CC_DBG)
-	Serial << F(" - ready\n");
+	Serial << F(" - ready\r\n");
 	#endif
 }
 
@@ -125,12 +125,12 @@ uint8_t CC110x::sendData(uint8_t *buf, uint8_t burst) {									// send data pac
 	cmdStrobe(CC1101_SFRX );															// flush RX buffer
 	cmdStrobe(CC1101_SFTX );															// flush TX buffer
 
-	//Serial << "tx\n";
+	//Serial << "tx\r\n";
 
 	if (burst) {																		// BURST-bit set?
 		cmdStrobe(CC1101_STX  );														// send a burst
 		_delay_ms(360);																	// according to ELV, devices get activated every 300ms, so send burst for 360ms
-		//Serial << "send burst\n";
+		//Serial << "send burst\r\n";
 
 	} else {
 		_delay_ms(1);																	// wait a short time to set TX mode
@@ -158,7 +158,7 @@ uint8_t CC110x::sendData(uint8_t *buf, uint8_t burst) {									// send data pac
 		Serial << F("<- ") << pHexL(&buf[0], buf[0]+1) << pTime();
 	#endif
 
-	//Serial << "rx\n";
+	//Serial << "rx\r\n";
 	return true;
 }
 
@@ -226,7 +226,7 @@ uint8_t CC110x::detectBurst(void) {														// wake up CC1101 from power do
 	_delay_ms(3);																		// wait a short time to set RX mode
 
 	// todo: check carrier sense for 5ms to avoid wakeup due to normal transmition
-	//Serial << "rx\n";
+	//Serial << "rx\r\n";
 //	return bitRead(hm.cc.monitorStatus(),6);											// return the detected signal
 	return bitRead(monitorStatus(),6);													// return the detected signal
 }
@@ -235,7 +235,7 @@ void    CC110x::setPowerDownState() {													// put CC1101 into power-down 
 	cmdStrobe(CC1101_SIDLE);															// coming from RX state, we need to enter the IDLE state first
 	cmdStrobe(CC1101_SFRX);
 	cmdStrobe(CC1101_SPWD);																// enter power down state
-	//Serial << "pd\n";
+	//Serial << "pd\r\n";
 }
 
 uint8_t CC110x::monitorStatus() {

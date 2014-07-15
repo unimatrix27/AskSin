@@ -19,7 +19,7 @@
 #include "utility/Fastdelegate.h"
 #include "utility/PinChangeIntHandler.h"
 
-//#define DM_DBG																// debug message flag
+#define DM_DBG																// debug message flag
 
 
 class Buttons {
