@@ -24,7 +24,7 @@ uint8_t bCast[] = {0,0,0,0};													// broad cast address
 void     HM::init(void) {
 	#ifdef AS_DBG || AS_DBG_Explain
 		//Serial.begin(57600);													// serial setup
-		Serial << F("AskSin debug enabled...\n");								// ...and some information
+		Serial << F("AskSin debug enabled...\r\n");								// ...and some information
 	#endif
 
 	// register handling setup
@@ -154,7 +154,7 @@ void     HM::setPowerMode(uint8_t mode) {
 
 	powr.mode = mode;																	// set power mode
 	powr.state = 1;																		// after init of the TRX module it is in RX mode
-	//Serial << "pwr.mode:" << powr.mode << '\n';
+	//Serial << "pwr.mode:" << powr.mode << "\r\n";
 }
 
 void     HM::stayAwake(uint32_t xMillis) {
@@ -181,20 +181,20 @@ void     HM::printConfig(void) {
 	s_cnlDefType t;
 	
 	// print content of devDef incl slice string table
-	Serial << F("\ncontent of dDef for ") << dDef.lstNbr << F(" elements\n");
+	Serial << F("\r\ncontent of dDef for ") << dDef.lstNbr << F(" elements\r\n");
 	for (uint8_t i = 0; i < dDef.lstNbr; i++) {
 
 		memcpy_P((void*)&t, &dDef.chPtr[i], sizeof(s_cnlDefType));
 		if ((t.lst == 3) || (t.lst == 4)) getCnlListByPeerIdx(t.cnl, 0);		// load list3/4
 		
-		Serial << F("cnl:") << t.cnl  << F(", lst:") << t.lst <<  F(", pMax:") << t.pMax <<  '\n';
-		Serial << F("idx:") << t.sIdx << F(", len:") << t.sLen << F(", addr:") << t.pAddr << '\n';
+		Serial << F("cnl:") << t.cnl  << F(", lst:") << t.lst <<  F(", pMax:") << t.pMax <<  "\r\n";
+		Serial << F("idx:") << t.sIdx << F(", len:") << t.sLen << F(", addr:") << t.pAddr << "\r\n";
 		
-		Serial << F("regs: ") << pHex(dDef.slPtr + t.sIdx, t.sLen) << '\n';
+		Serial << F("regs: ") << pHex(dDef.slPtr + t.sIdx, t.sLen) << "\r\n";
 		Serial << F("data: ") << pHex((uint8_t*)t.pRegs, t.sLen) << ' ';
 
 		if (t.pMax == 0) {
-			Serial << F("\n\n");
+			Serial << F("\r\n\r\n");
 			continue;
 		}
 		
@@ -203,15 +203,15 @@ void     HM::printConfig(void) {
 			Serial << pHex((uint8_t*)t.pRegs, t.sLen) << ' ';
 		}
 
-		Serial << '\n';
+		Serial << "\r\n";
 		for (uint8_t j = 0; j < t.pMax; j++) {
 			getPeerByIdx(t.cnl, j, peer);
 			Serial << pHex(peer, 4) << F("   ");
 		}
-		Serial << F("\n\n");
+		Serial << F("\r\n\r\n");
 	}
 
-	Serial << '\n';
+	Serial << "\r\n";
 }
 
 void     HM::prepEEprom(void) {
@@ -225,15 +225,15 @@ void     HM::prepEEprom(void) {
 	}
 	
 	#ifdef RPDB_DBG																// some debug message
-	Serial << F("prepEEprom t_crc: ") << crc << F(", e_crc: ") << getEeWo(ee[0].magicNr) << '\n';
+	Serial << F("prepEEprom t_crc: ") << crc << F(", e_crc: ") << getEeWo(ee[0].magicNr) << "\r\n";
 	#endif
 
 	if (crc != getEeWo(ee[0].magicNr)) {										// compare against eeprom's magic number
-		Serial << "prep eeprom\n";
+		Serial << "prep eeprom\r\n";
 		#ifdef RPDB_DBG
-		Serial << F("format eeprom for:\n");
-		Serial << F("peerDB, addr:") << ee[0].peerDB << F(", len:") << ee[1].peerDB << '\n';
-		Serial << F("regsDB, addr:") << ee[0].regsDB << F(", len:") << ee[1].regsDB << '\n';
+		Serial << F("format eeprom for:\r\n");
+		Serial << F("peerDB, addr:") << ee[0].peerDB << F(", len:") << ee[1].peerDB << "\r\n";
+		Serial << F("regsDB, addr:") << ee[0].regsDB << F(", len:") << ee[1].regsDB << "\r\n";
 		#endif
 		
 		clrEeBl(ee[0].peerDB, ee[1].peerDB);									// format the eeprom area
@@ -248,7 +248,7 @@ void     HM::prepEEprom(void) {
 void     HM::loadDefaults(void) {
 	if (dtRegs.nbr) {
 		#ifdef RPDB_DBG
-		Serial << F("set defaults:\n");
+		Serial << F("set defaults:\r\n");
 		#endif
 		
 		for (uint8_t i = 0; i < dtRegs.nbr; i++) {								// step through the table
@@ -269,7 +269,7 @@ void     HM::loadDefaults(void) {
 			}
 			
 			#ifdef RPDB_DBG																// some debug message
-			Serial << F("cnl:") << t->cnl << F(", lst:") << t->lst << F(", idx:") << t->pIdx << ", addr:" << eeAddr << ", data: " << pHexPGM(t->b, t->len) << '\n';
+			Serial << F("cnl:") << t->cnl << F(", lst:") << t->lst << F(", idx:") << t->pIdx << ", addr:" << eeAddr << ", data: " << pHexPGM(t->b, t->len) << "\r\n";
 			#endif
 		}
 	}
@@ -285,7 +285,7 @@ void     HM::loadRegs(void) {
 
 	// fill the master id
 	uint8_t ret = getRegAddr(0,0,0,0x0a,3,dParm.MAID);							// get regs for 0x0a
-	//Serial << "MAID:" << pHex(dParm.MAID,3) << '\n'; 	
+	//Serial << "MAID:" << pHex(dParm.MAID,3) << "\r\n"; 	
 }
 
 void     HM::regCnlModule(uint8_t cnl, s_mod_dlgt Delegate, uint16_t *mainList, uint16_t *peerList) {
@@ -422,7 +422,7 @@ void     HM::sendPeerREMOTE(uint8_t cnl, uint8_t longPress, uint8_t lowBat) {
 	pevt.len = 2;																// 2 bytes payload
 
 	pevt.act = 1;																		// active, 1 = yes, 0 = no
-	//Serial << "remote; cdpIdx:" << pevt.cdpIdx << ", type:" << pHexB(pevt.type) << ", rACK:" << pHexB(pevt.reqACK) << ", msgCnt:" << pevt.msgCnt << ", data:" << pHex(pevt.data,pevt.len) << '\n';
+	//Serial << "remote; cdpIdx:" << pevt.cdpIdx << ", type:" << pHexB(pevt.type) << ", rACK:" << pHexB(pevt.reqACK) << ", msgCnt:" << pevt.msgCnt << ", data:" << pHex(pevt.data,pevt.len) << "\r\n";
 }
 //void     HM::sendPeerWEATHER(uint8_t cnl, uint16_t temp, uint8_t hum, uint16_t pres, uint32_t lux) {
 // debugging
@@ -472,7 +472,7 @@ void     HM::sendPeerRAW(uint8_t cnl, uint8_t type, uint8_t *data, uint8_t len) 
 	if (cnl >  dDef.cnlNbr) return;														// channel out of range, do nothing
 //	if (pevt.act) return;																// already sending an event, leave
 //	if (doesListExist(cnl,4) == 0) {													// check if a list4 exist, otherwise leave
-		//Serial << "sendPeerREMOTE failed\n";
+		//Serial << "sendPeerREMOTE failed\r\n";
 //		return;
 //	}
 	
@@ -539,7 +539,7 @@ void     HM::recv_poll(void) {															// handles the receive objects
 	// is the message from a valid sender (pair or peer), if not then exit - takes ~2ms
 	if (isPairKnown(recv_reID) == 0) {													// check against peers
 		#if defined(AS_DBG)																// some debug message
-			Serial << "pair/peer did not fit, exit\n";
+			Serial << "pair/peer did not fit, exit\r\n";
 		#endif
 
 		recv.data[0] = 0;																// clear receive string
@@ -552,9 +552,9 @@ void     HM::recv_poll(void) {															// handles the receive objects
 		#if defined(AS_DBG)																// some debug message
 			Serial << F("   repeated message; ");
 			if (recv.mCnt == recv_rCnt) {
-				Serial << F("already received - skip\n");
+				Serial << F("already received - skip\r\n");
 			} else {
-				Serial << F("not received before...\n");
+				Serial << F("not received before...\r\n");
 			}
 		#endif
 		
@@ -591,7 +591,7 @@ void     HM::recv_poll(void) {															// handles the receive objects
 		}
 
 		#if defined(AS_DBG)																// some debug message
-			else Serial << F("\nUNKNOWN MESSAGE, PLEASE REPORT!\n\n");
+			else Serial << F("\r\nUNKNOWN MESSAGE, PLEASE REPORT!\r\n\r\n");
 		#endif
 	}
 	
@@ -655,7 +655,7 @@ void     HM::send_conf_poll(void) {
 	
 	statusLed.set(STATUSLED_1, STATUSLED_MODE_BLINKSFAST, 1);							// blink the led 1 once
 
-	//Serial << "send conf poll\n";
+	//Serial << "send conf poll\r\n";
 	if (conf.type == 0x01) {
 		// answer                            Cnl  Peer         Peer         Peer         Peer
 		// l> 1A 05 A0 10 1E 7A AD 63 19 63  01   1F A6 5C 02  1F A6 5C 01  11 22 33 02  11 22 33 01
@@ -732,7 +732,7 @@ void     HM::send_peer_poll(void) {
 	// step through the peers, get the respective list4 and send the message
 	uint32_t tPeer;
 	uint8_t ret = getPeerByIdx(_pgmB(&t->cnl),pPtr,(uint8_t*)&tPeer);									
-	//Serial << "pP:" << pPtr << ", tp:" << pHex((uint8_t*)&tPeer,4) << '\n';
+	//Serial << "pP:" << pPtr << ", tp:" << pHex((uint8_t*)&tPeer,4) << "\r\n";
 	if (tPeer == 0) {
 		pPtr++;
 		return;
@@ -746,7 +746,7 @@ void     HM::send_peer_poll(void) {
 	// AES will be ignored at the moment, but burst needed will be translated into the message flag - bit 0 in regLstByte, translated to bit 4 = burst transmission in msgFlag
 	uint8_t lB[1];
 	getRegAddr(_pgmB(&t->cnl),_pgmB(&t->lst),pPtr++,0x01,1,lB);							// get regs for 0x01
-	//Serial << "rB:" << pHexB(lB[0]) << '\n';
+	//Serial << "rB:" << pHexB(lB[0]) << "\r\n";
 	send_prep(send.mCnt++,(0x82|pevt.reqACK|bitRead(lB[0],0)<<4),pevt.type,(uint8_t*)&tPeer,pevt.data,pevt.len); // prepare the message
 }
 
@@ -887,7 +887,7 @@ void     HM::exMsg(uint8_t *buf) {
 	Serial << F("   ");																	// save some byte and send 3 blanks once, instead of having it in every if
 	
 	if        ((b_msgTp == 0x00)) {
-		Serial << F("DEVICE_INFO; fw: ") << pHex(&buf[10],1) << F(", type: ") << pHex(&buf[11],2) << F(", serial: ") << pHex(&buf[13],10) << '\n';
+		Serial << F("DEVICE_INFO; fw: ") << pHex(&buf[10],1) << F(", type: ") << pHex(&buf[11],2) << F(", serial: ") << pHex(&buf[13],10) << "\r\n";
 		Serial << F("              , class: ") << pHex(&buf[23],1) << F(", pCnlA: ") << pHex(&buf[24],1) << F(", pCnlB: ") << pHex(&buf[25],1) << F(", na: ") << pHex(&buf[26],1);
 
 		} else if ((b_msgTp == 0x01) && (b_by11 == 0x01)) {
@@ -1019,7 +1019,7 @@ void     HM::exMsg(uint8_t *buf) {
 		} else {
 		Serial << F("Unknown Message, please report!");
 	}
-	Serial << F("\n\n");
+	Serial << F("\r\n\r\n");
 	#endif
 }
 
@@ -1117,14 +1117,14 @@ void     HM::recv_PairConfig(void) {
 		// do something with the information ----------------------------------
 		if ((!conf.wrEn) || (!(conf.channel == recv_payLoad[0]))) {					// but only if we are in config mode
 			#if defined(AS_DBG)
-			Serial << F("   write data, but not in config mode\n");
+			Serial << F("   write data, but not in config mode\r\n");
 			#endif
 			return;
 		}
 		uint8_t payLen = recv_len - 11;												// calculate len of payload and provide the data
 		uint8_t ret = setListFromMsg(conf.channel, conf.list, conf.peer, payLen, &recv_payLoad[2]);
-		//Serial << "we: " << conf.wrEn << ", cnl: " << conf.channel << ", lst: " << conf.list << ", peer: " << pHex(conf.peer,4) << '\n';
-		//Serial << "pl: " << pHex(&recv_payLoad[2],payLen) << ", ret: " << ret << '\n';
+		//Serial << "we: " << conf.wrEn << ", cnl: " << conf.channel << ", lst: " << conf.list << ", peer: " << pHex(conf.peer,4) << "\r\n";
+		//Serial << "pl: " << pHex(&recv_payLoad[2],payLen) << ", ret: " << ret << "\r\n";
 
 		// send appropriate answer ---------------------------------------------
 		if (recv_ackRq)  send_ACK();												// send ACK if requested
@@ -1275,7 +1275,7 @@ uint8_t  HM::isPeerKnown(uint8_t *peer) {
 	return 0;																			// nothing found
 }
 uint8_t  HM::isPairKnown(uint8_t *pair) {
-	//Serial << "x:" << pHex(dParm.MAID,3) << " y:" << pHex(pair,3) << '\n';
+	//Serial << "x:" << pHex(dParm.MAID,3) << " y:" << pHex(pair,3) << "\r\n";
 	if (memcmp(dParm.MAID, bCast, 3) == 0) return 1;									// return 1 while not paired
 	
 	if (memcmp(dParm.MAID, pair, 3) == 0) return 1;										// check against regDev
@@ -1299,7 +1299,7 @@ uint8_t  HM::addPeerFromMsg(uint8_t cnl, uint8_t *peer) {
 	}
 
 	#ifdef RPDB_DBG																		// some debug message
-	Serial << F("addPeerFromMsg, cnl: ") << cnl << F(", ret1: ") << ret1 << F(", ret2: ") << ret2 << '\n';
+	Serial << F("addPeerFromMsg, cnl: ") << cnl << F(", ret1: ") << ret1 << F(", ret2: ") << ret2 << "\r\n";
 	#endif
 	
 	//                                  Cnl      PeerID    PeerCnl_A  PeerCnl_B
@@ -1322,7 +1322,7 @@ uint8_t  HM::remPeerFromMsg(uint8_t cnl, uint8_t *peer) {
 	uint8_t ret2 = remPeer(cnl, tPeer);													// remove the second peer
 
 	#ifdef RPDB_DBG																		// some debug message
-	Serial << F("remPeerFromMsg, cnl: ") << cnl << F(", ret1: ") << ret1 << F(", ret2: ") << ret2 << '\n';
+	Serial << F("remPeerFromMsg, cnl: ") << cnl << F(", ret1: ") << ret1 << F(", ret2: ") << ret2 << "\r\n";
 	#endif
 	
 	return 1;																			// every thing went ok
@@ -1355,10 +1355,10 @@ uint8_t  HM::getPeerForMsg(uint8_t cnl, uint8_t *buf) {
 
 		peerL = getEeLo(cdPeerAddrByCnlIdx(cnl,ptr));									// get the peer
 		
-		//Serial << "start: " << start << ", len: " << len << ", pos: " << (cnt-start) << '\n';
+		//Serial << "start: " << start << ", len: " << len << ", pos: " << (cnt-start) << "\r\n";
 		if (peerL != 0) {																// if we found an filled block
 
-			//Serial << "i: " << cnt << "pL: " << pHex((uint8_t*)&peerL,4) << '\n';
+			//Serial << "i: " << cnt << "pL: " << pHex((uint8_t*)&peerL,4) << "\r\n";
 			memcpy(&buf[cnt], (uint8_t*)&peerL, 4);										// copy the content
 			cnt+=4;																		// increase the pointer to buffer for next time
 		}
@@ -1430,7 +1430,7 @@ uint8_t  HM::setListFromMsg(uint8_t cnl, uint8_t lst, uint8_t *peer, uint8_t len
 		void *x = memchr(&dDef.slPtr[slcAddr], buf[i], _pgmB(&t->sLen));				// find the byte in slcStr
 		if ((uint16_t)x == 0) continue;													// got no result, try next
 		pIdx = (uint8_t)((uint16_t)x - (uint16_t)&dDef.slPtr[slcAddr]);					// calculate the relative position
-		//Serial << "x: " << pHexB(buf[i])  << ", ad: " << pIdx << '\n';
+		//Serial << "x: " << pHexB(buf[i])  << ", ad: " << pIdx << "\r\n";
 		setEeBy(regAddr+pIdx,buf[i+1]);													// write the bytes to the respective address
 	}
 	return 1;
@@ -1462,7 +1462,7 @@ void     HM::getCnlListByPeerIdx(uint8_t cnl, uint8_t peerIdx) {
 	getEeBl(addr, _pgmB(&t->sLen), (void*)_pgmW(&t->pRegs));							// load content from eeprom
 	
 	#if defined(SM_DBG)																	// some debug message
-	Serial << F("Loading list3/4 for cnl: ") << cnl << F(", peer: ") << pHex(peer,4) << '\n';
+	Serial << F("Loading list3/4 for cnl: ") << cnl << F(", peer: ") << pHex(peer,4) << "\r\n";
 	#endif
 }
 void     HM::setListFromModule(uint8_t cnl, uint8_t peerIdx, uint8_t *data, uint8_t len) {
@@ -1479,7 +1479,7 @@ uint8_t  HM::getCnlByPeer(uint8_t *peer) {
 	for (uint8_t i = 1; i <= dDef.cnlNbr; i++) {										// step through all channels
 
 		uint8_t ret = getIdxByPeer(i,peer);												// searching inside the channel
-		//Serial << "cnl: " << i << ", ret: " << ret << '\n';							// some debug message
+		//Serial << "cnl: " << i << ", ret: " << ret << "\r\n";							// some debug message
 		if (ret != 0xff) return i;														// if something found then return
 	}
 	return 0xff;																		// nothing found
@@ -1511,7 +1511,7 @@ uint8_t  HM::getFreePeerSlot(uint8_t cnl) {
 	return 0xff;																		// no block found
 }
 uint8_t  HM::cntFreePeerSlot(uint8_t cnl) {
-	//Serial << "idx:" << ret << ", pMax:" << _pgmB(&dDef.chPtr[ret].pMax) << '\n';
+	//Serial << "idx:" << ret << ", pMax:" << _pgmB(&dDef.chPtr[ret].pMax) << "\r\n";
 	s_cnlDefType *t = cnlDefbyPeer(cnl);
 	if (t == NULL) return 0xff;
 	
