@@ -339,6 +339,8 @@ void     HM::sendInfoActuatorStatus(uint8_t cnl, uint8_t status, uint8_t flag) {
 	if (memcmp(dParm.MAID,bCast,3) == 0) {
 		return;																	// not paired, nothing to send
 	}
+	Serial << "MAID: " << dParm.MAID[0]  << dParm.MAID[1] << dParm.MAID[2] << "\r\n";
+	Serial << "BCast: " << bCast[0] << bCast[1] << bCast[2] << "\r\n";
 
 	//	"10;p01=06"   => { txt => "INFO_ACTUATOR_STATUS", params => {
 	//		CHANNEL => "2,2",
@@ -523,7 +525,7 @@ void     HM::recv_poll(void) {															// handles the receive objects
 			Serial << F("l> ");
 		}
 
-		Serial << pHexL(recv.data, recv.data[0]+1) << pTime();
+		Serial << pHexL(recv.data, recv.data[0]+1) << pTime() << "\r\n";
 		exMsg(recv.data);																// explain message
 	#endif
 
@@ -591,7 +593,7 @@ void     HM::recv_poll(void) {															// handles the receive objects
 		}
 
 		#if defined(AS_DBG)																// some debug message
-			else Serial << F("\r\nUNKNOWN MESSAGE, PLEASE REPORT!\r\n\r\n");
+			else Serial << "UNKNOWN MESSAGE, PLEASE REPORT!\r\n";
 		#endif
 	}
 	
@@ -622,7 +624,7 @@ void     HM::send_poll(void) {															// handles the send queue
 		if ((powr.mode > 0) && (powr.nxtTO < (mils + powr.minTO))) stayAwake(powr.minTO); // stay awake for some time
 
 		#if defined(AS_DBG)																// some debug messages
-		Serial << F("<- ") << pHexL(send.data, send.data[0]+1) << pTime();
+		Serial << F("<- ") << pHexL(send.data, send.data[0]+1) << pTime() << "\r\n";
 		#endif
 
 		if (pevt.act == 1) {
@@ -644,7 +646,7 @@ void     HM::send_poll(void) {															// handles the send queue
 		}
 
 		#if defined(AS_DBG)
-		Serial << F("-> NA ") << pTime();
+		Serial << F("-> NA ") << pTime() << "\r\n";
 		#endif
 	}
 }																										// ready, should work
@@ -884,7 +886,7 @@ void     HM::exMsg(uint8_t *buf) {
 	#define b_by10			buf[10]
 	#define b_by11			buf[11]
 
-	Serial << F("   ");																	// save some byte and send 3 blanks once, instead of having it in every if
+	Serial << "   ";																	// save some byte and send 3 blanks once, instead of having it in every if
 	
 	if        ((b_msgTp == 0x00)) {
 		Serial << F("DEVICE_INFO; fw: ") << pHex(&buf[10],1) << F(", type: ") << pHex(&buf[11],2) << F(", serial: ") << pHex(&buf[13],10) << "\r\n";
@@ -1019,7 +1021,7 @@ void     HM::exMsg(uint8_t *buf) {
 		} else {
 		Serial << F("Unknown Message, please report!");
 	}
-	Serial << F("\r\n\r\n");
+	Serial << "\r\n";
 	#endif
 }
 
@@ -1436,7 +1438,7 @@ uint8_t  HM::setListFromMsg(uint8_t cnl, uint8_t lst, uint8_t *peer, uint8_t len
 	return 1;
 }
 uint8_t  HM::getRegAddr(uint8_t cnl, uint8_t lst, uint8_t pIdx, uint8_t addr, uint8_t len, uint8_t *buf) {
-
+	Serial << "getRegAddr: cnl: " << cnl << ", lst: " << lst <<", ";
 	s_cnlDefType *t = cnlDefbyList(cnl, lst);
 	if (t == NULL) return 0;
 
@@ -1445,6 +1447,7 @@ uint8_t  HM::getRegAddr(uint8_t cnl, uint8_t lst, uint8_t pIdx, uint8_t addr, ui
 	uint8_t xIdx = (uint8_t)((uint16_t)x - (uint16_t)&dDef.slPtr[_pgmB(&t->sIdx)]);		// calculate the base address
 	
 	uint16_t regAddr = cdListAddrByPtr(t, pIdx);										// get the base address in eeprom
+	Serial << "pIDX: " << pIdx << ", regAddr: " << regAddr << "\r\n";
 	getEeBl(regAddr+xIdx,len,buf);														// get the respective block from eeprom
 	return 1;																			// we are successfully
 }

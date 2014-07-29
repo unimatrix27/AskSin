@@ -5,7 +5,7 @@
 //- Relay class -----------------------------------------------------------------------------------------------------------
 //- with a lot of support from martin876 at FHEM forum
 //- -----------------------------------------------------------------------------------------------------------------------
-#include "Relay.h"
+#include "Dimmer.h"
 #define DM_DBG 1
 // default settings for list3 or list4
 const uint8_t peerOdd[] =    {
@@ -30,10 +30,10 @@ const uint8_t peerSingle[] = {
 
 //- user code here --------------------------------------------------------------------------------------------------------
 // public function for setting the module
-//void Relay::config(uint8_t type, uint8_t pinOn, uint8_t pinOff, uint8_t minDelay, uint8_t randomDelay) {
-void Relay::config(void Init(), void Switch(uint8_t), uint8_t minDelay, uint8_t randomDelay) {
+//void Dimmer::config(uint8_t type, uint8_t pinOn, uint8_t pinOff, uint8_t minDelay, uint8_t randomDelay) {
+void Dimmer::config(void Init(), void Switch(uint8_t), uint8_t minDelay, uint8_t randomDelay) {
 	// store config settings in class
-	//hwType = type;																// 0 indicates a monostable, 1 a bistable relay
+	//hwType = type;																// 0 indicates a monostable, 1 a bistable 
 	//hwPin[0] = pinOn;															// first byte for on, second for off
 	//hwPin[1] = pinOff;
 
@@ -48,30 +48,36 @@ void Relay::config(void Init(), void Switch(uint8_t), uint8_t minDelay, uint8_t 
 
 	// some basic settings for start
 	nxtStat = 6;																// set relay status to off
-	adjRly(0);																	// set relay to a defined status
+	curValue = 0;
+	adjRly();																	// set relay to a defined status
 	curStat = 6;																// set relay status to off
 }
 
-// private functions for triggering some action
-void Relay::trigger11(uint8_t val, uint8_t *rampTime, uint8_t *duraTime) {
-	// {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
+void Dimmer::newDim(void){
+	curStat = (nxtValue>curValue)?2:5;
+	dimTime = rTime * 50;
+	if(dimTime==0) dimTime=1;
+	dimSlice=(nxtValue-curValue)/dimTime;
+}
+	
 
+// private functions for triggering some action
+void Dimmer::trigger11(uint8_t val, uint8_t *rampTime, uint8_t *duraTime) {
+	// {no=>0,dlyOn=>1,rampOn=>2, on=>3,dlyOff=>4,rampOff=>5, off=>6}
 	rTime = (uint16_t)rampTime[0]<<8 | (uint16_t)rampTime[1];					// store ramp time
 	dTime = (duraTime)?((uint16_t)duraTime[0]<<8 | (uint16_t)duraTime[1]):0;	// duration time if given
-	
-	if (rTime) nxtStat = (val == 0)?4:1;										// set next status
-	else nxtStat = (val == 0)?6:3;
-
+	nxtValue = val;
+	dimTime=rTime;
 	lastTrig = 11;																// remember the trigger
-	rlyTime = millis();															// changed some timers, activate poll function
+	rlyTime = millis();															// activate poll function
 
 	#ifdef DM_DBG
-	Serial << F("RL:trigger11, val:") << val << F(", nxtS:") << nxtStat << F(", rampT:") << rTime << F(", duraT:") << dTime << '\r\n';
+	Serial << F("DM:trigger11, val:") << val << F(", nxtS:") << nxtStat << F(", rampT:") << rTime << F(", duraT:") << dTime << "\r\n";
 	#endif
 
 	hm->sendACKStatus(regCnl,getRlyStat(),getMovStat());						// send an status ACK
 }
-void Relay::trigger40(uint8_t lngIn, uint8_t cnt) {
+void Dimmer::trigger40(uint8_t lngIn, uint8_t cnt) {
 	s_srly *s3 = ptrPeerList;													// copy list3 to pointer
 
 	// check for repeated message
@@ -80,26 +86,26 @@ void Relay::trigger40(uint8_t lngIn, uint8_t cnt) {
 	msgRecvCnt = cnt;															// remember message counter
 
 	// fill the respective variables
-	uint8_t actTp = (lngIn)?s3->lgActionType:s3->shActionType;					// get actTp = {off=>0,jmpToTarget=>1,toggleToCnt=>2,toggleToCntInv=>3}
+	uint8_t actTp = (lngIn)?s3->lgActionTypeDim:s3->shActionTypeDim;					// get actTp = {off=>0,jmpToTarget=>1,toggleToCnt=>2,toggleToCntInv=>3}
 
 	if (actTp == 0) {															// off
 
 	} else if ((actTp == 1) && (lngIn == 1)) {									// jmpToTarget
 		// SwJtOn {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
-		if      (curStat == 6) nxtStat = s3->lgSwJtOff;							// currently off
-		else if (curStat == 3) nxtStat = s3->lgSwJtOn;							// on
-		else if (curStat == 4) nxtStat = s3->lgSwJtDlyOff;						// delay off
-		else if (curStat == 1) nxtStat = s3->lgSwJtDlyOn;						// delay on
+		if      (curStat == 6) nxtStat = s3->lgDimJtOff;							// currently off
+		else if (curStat == 3) nxtStat = s3->lgDimJtOn;							// on
+		else if (curStat == 4) nxtStat = s3->lgDimJtDlyOff;						// delay off
+		else if (curStat == 1) nxtStat = s3->lgDimJtDlyOn;						// delay on
 		OnDly   = s3->lgOnDly;													// set timers
 		OnTime  = s3->lgOnTime;
 		OffDly  = s3->lgOffDly;
 		OffTime = s3->lgOffTime;
 
 	} else if ((actTp == 1) && (lngIn == 0)) {									// jmpToTarget
-		if      (curStat == 6) nxtStat = s3->shSwJtOff;							// currently off
-		else if (curStat == 3) nxtStat = s3->shSwJtOn;							// on
-		else if (curStat == 4) nxtStat = s3->shSwJtDlyOff;						// delay off
-		else if (curStat == 1) nxtStat = s3->shSwJtDlyOn;						// delay on
+		if      (curStat == 6) nxtStat = s3->shDimJtOff;							// currently off
+		else if (curStat == 3) nxtStat = s3->shDimJtOn;							// on
+		else if (curStat == 4) nxtStat = s3->shDimJtDlyOff;						// delay off
+		else if (curStat == 1) nxtStat = s3->shDimJtDlyOn;						// delay on
 		OnDly   = s3->shOnDly;													// set timers
 		OnTime  = s3->shOnTime;
 		OffDly  = s3->shOffDly;
@@ -117,37 +123,29 @@ void Relay::trigger40(uint8_t lngIn, uint8_t cnt) {
 	rlyTime = millis();															// changed some timers, activate poll function
 
 	#ifdef DM_DBG
-	Serial << F("RL:trigger40, curS:") << curStat << F(", nxtS:") << nxtStat << F(", OnDly:") << OnDly << F(", OnTime:") << OnTime << F(", OffDly:") << OffDly << F(", OffTime:") << OffTime << '\r\n';
+	Serial << F("RL:trigger40, curS:") << curStat << F(", nxtS:") << nxtStat << F(", OnDly:") << OnDly << F(", OnTime:") << OnTime << F(", OffDly:") << OffDly << F(", OffTime:") << OffTime << "\r\n";
 	#endif
 
 	hm->sendACKStatus(regCnl,getRlyStat(),getMovStat());
 }
-void Relay::trigger41(uint8_t lngIn, uint8_t val) {
+void Dimmer::trigger41(uint8_t lngIn, uint8_t val) {
 	lastTrig = 41;																// set trigger
 	rlyTime = millis();															// changed some timers, activate poll function
 }
 
 
 // private functions for setting relay and getting current status
-void Relay::adjRly(uint8_t tValue) {
-	if (curStat == nxtStat) return;												// nothing to do
-	tSwitch(tValue);
-	
-	modStat = (tValue)?0xc8:0x00;
-
-	#ifdef DM_DBG
-	Serial << F("RL:adjRly, curS:") << curStat << F(", nxtS:") << nxtStat << '\r\n';
-	#endif
-
-	cbsTme = millis() + ((uint32_t)mDel*1000) + random(((uint32_t)rDel*1000));	// set the timer for sending the status
-	//Serial << "cbsT:" << cbsTme << '\r\n';
+void Dimmer::adjRly() {
+	tSwitch((uint8_t)curValue);
+	if(!cbsTme) cbsTme = millis() + ((uint32_t)mDel*1000) + random(((uint32_t)rDel*1000));	// set the timer for sending the status
+	//Serial << "cbsT:" << cbsTme << "\r\n";
 }
-uint8_t Relay::getMovStat(void) {
+uint8_t Dimmer::getMovStat(void) {
 	// curStat could be {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
 	if ((nxtStat == 1) || (nxtStat == 4)) return 0x40;
 	else return 0x00;
 }
-uint8_t Relay::getRlyStat(void) {
+uint8_t Dimmer::getRlyStat(void) {
 	// curStat could be {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
 	if ((nxtStat == 6) || (nxtStat == 1)) return 0x00;
 	else return 0xC8;
@@ -155,13 +153,13 @@ uint8_t Relay::getRlyStat(void) {
 
 
 //- mandatory functions for every new module to communicate within HM protocol stack --------------------------------------
-void Relay::configCngEvent(void) {
+void Dimmer::configCngEvent(void) {
 	// it's only for information purpose while something in the channel config was changed (List0/1 or List3/4)
 	#ifdef DM_DBG
 	Serial << F("configCngEvent\r\n");
 	#endif
 }
-void Relay::pairSetEvent(uint8_t *data, uint8_t len) {
+void Dimmer::pairSetEvent(uint8_t *data, uint8_t len) {
 	// we received a message from master to set a new value, typical you will find three bytes in data
 	// 1st byte = value; 2nd byte = ramp time; 3rd byte = duration time;
 	// after setting the new value we have to send an enhanced ACK (<- 0E E7 80 02 1F B7 4A 63 19 63 01 01 C8 00 54)
@@ -169,12 +167,12 @@ void Relay::pairSetEvent(uint8_t *data, uint8_t len) {
 	Serial << F("pairSetEvent, value:") << pHexB(data[0]);
 	if (len > 1) Serial << F(", rampTime: ") << pHexB(data[1]);
 	if (len > 3) Serial << F(", duraTime: ") << pHexB(data[3]);
-	Serial << '\r\n';
+	Serial << "\r\n";
 	#endif
 	
 	//hm->sendACKStatus(regCnl,modStat,0);
 }
-void Relay::pairStatusReq(void) {
+void Dimmer::pairStatusReq(void) {
 	// we received a status request, appropriate answer is an InfoActuatorStatus message
 	#ifdef DM_DBG
 	Serial << F("pairStatusReq\r\n");
@@ -182,37 +180,72 @@ void Relay::pairStatusReq(void) {
 	
 	hm->sendInfoActuatorStatus(regCnl, getRlyStat(), getMovStat());
 }
-void Relay::peerMsgEvent(uint8_t type, uint8_t *data, uint8_t len) {
+void Dimmer::peerMsgEvent(uint8_t type, uint8_t *data, uint8_t len) {
 	// we received a peer event, in type you will find the marker if it was a switch(3E), remote(40) or sensor(41) event
 	// appropriate answer is an ACK
 	#ifdef DM_DBG
-	Serial << F("peerMsgEvent, type: ")  << pHexB(type) << F(", data: ")  << pHex(data,len) << '\r\n';
+	Serial << F("peerMsgEvent, type: ")  << pHexB(type) << F(", data: ")  << pHex(data,len) << "\r\n";
 	#endif
 	
 	//hm->send_ACK();
 }
 
-void Relay::poll(void) {
+void Dimmer::poll(void) {
 	// just polling, as the function name said
 	if ((cbsTme != 0) && (millis() > cbsTme)) {									// check if we have to send a status message
 		hm->sendInfoActuatorStatus(regCnl, getRlyStat(), 0);					// send status
 		cbsTme = 0;																// nothing to do any more
 	}
-
+	
+	if (dimTime > 0 && millis() > nextDimTime){									// are we ramping and has the time come for the next step
+		nextDimTime+=40;														// execute ramp step 25 times per second
+		dimTime--;
+		curValue = curValue+dimSlice;											// adjust value for next step
+		adjRly();																// give value to frontend
+		if(dimTime==0){curStat = (nxtValue)?3:6;}								// ramp is over- next state either on or off
+		if(nxtValue==0){														// ensure that it is really 0 (maybe not needed)
+			curValue = 0;
+			adjRly();
+			curStat=6;															// state is off now
+			if(lastTrig == 11)	{												// if last trigg = 11 = setPair - then no offtime. will remain off forever{
+				// nothing
+			}else{
+				// TODO deal with other triggers
+			}
+		}else{																	
+			curStat=3;															// ramp up finished - now  in state on is there a OnTime?
+			if(lastTrig == 11 && dTime > 0){
+				rlyTime = millis() + intTimeCvt(dTime);								// set the respective timer
+			}else{
+				// TODO other triggers
+			}
+		}
+	}
+	
+	
 	// relay timer functions
 	if ((rlyTime == 0) || (rlyTime > millis())) return;							// timer set to 0 or time for action not reached, leave
-	rlyTime = 0;																// freeze per default
+	rlyTime = 0;																// freeze no further action here if no timer is running
 
-	// set relay - {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
+	if(lastTrig==11){
+		if(curStat == 3){														// onTime from setPair is over
+			dimTime=1;
+			nxtValue=0;
+			newDim();
+		}
+	}
+			
+	
+	/*// set relay - {no=>0,dlyOn=>1,, rampON=>2, on=>3,dlyOff=>4,rampOff=> 5, off=>6}
 	if (nxtStat == 3) {															// set relay on
-		adjRly(1); curStat = 3;													// adjust relay, status will send from adjRly()
+		adjRly(dimTo,rTime); curStat = 3;													// adjust relay, status will send from adjRly()
 
 	} else if (nxtStat == 6) {													// set relay off
-		adjRly(0); curStat = 6;													// adjust relay, status will send from adjRly()
-	}
+		adjRly(dimTo,rTime); curStat = 6;													// adjust relay, status will send from adjRly()
+	}*/
 
 	// adjust nxtStat for trigger11 - {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
-	if (lastTrig == 11) {
+/*	if (lastTrig == 11) {
 		if (nxtStat == 1) {														// dlyOn -> on
 			nxtStat = 3;														// next status is on
 			rlyTime = millis() + intTimeCvt(rTime);								// set respective timer
@@ -222,9 +255,9 @@ void Relay::poll(void) {
 			rlyTime = millis() + intTimeCvt(dTime);								// set the respective timer
 		}
 	}
-
+*/
 	// adjust nxtStat for trigger40 - {no=>0,dlyOn=>1,on=>3,dlyOff=>4,off=>6}
-	if (lastTrig == 40) {
+/*	if (lastTrig == 40) {
 		if        (nxtStat == 1) {
 			nxtStat = 3;
 			rlyTime = millis() + byteTimeCvt(OnDly);
@@ -242,18 +275,18 @@ void Relay::poll(void) {
 			if (OffTime) rlyTime = millis() + byteTimeCvt(OffTime);
 		}
 	}
-
+*/
 	//cbM(cnlAss, curStat, nxtStat);
 
 }
 
 //- predefined, no reason to touch ----------------------------------------------------------------------------------------
-void Relay::regInHM(uint8_t cnl, HM *instPtr) {
+void Dimmer::regInHM(uint8_t cnl, HM *instPtr) {
 	hm = instPtr;																		// set pointer to the HM module
-	hm->regCnlModule(cnl,s_mod_dlgt(this,&Relay::hmEventCol),(uint16_t*)&ptrMainList,(uint16_t*)&ptrPeerList);
+	hm->regCnlModule(cnl,s_mod_dlgt(this,&Dimmer::hmEventCol),(uint16_t*)&ptrMainList,(uint16_t*)&ptrPeerList);
 	regCnl = cnl;																		// stores the channel we are responsible fore
 }
-void Relay::hmEventCol(uint8_t by3, uint8_t by10, uint8_t by11, uint8_t *data, uint8_t len) {
+void Dimmer::hmEventCol(uint8_t by3, uint8_t by10, uint8_t by11, uint8_t *data, uint8_t len) {
 	if  (by3 == 0x00)                    poll();
 	if ((by3 == 0x01) && (by11 == 0x06)) configCngEvent();
 	if ((by3 == 0x11) && (by10 == 0x02)) pairSetEvent(data, len);
@@ -264,12 +297,12 @@ void Relay::hmEventCol(uint8_t by3, uint8_t by10, uint8_t by11, uint8_t *data, u
 	if ((by3 == 0x11) && (by10 == 0x02)) trigger11(data[0], &data[1], &data[3]);	
 	if  (by3 == 0x40)                    trigger40((by10 & 0x40), data[0]);
 }
-void Relay::peerAddEvent(uint8_t *data, uint8_t len) {
+void Dimmer::peerAddEvent(uint8_t *data, uint8_t len) {
 	// we received an peer add event, which means, there was a peer added in this respective channel
 	// 1st byte and 2nd byte shows the peer channel, 3rd and 4th byte gives the peer index
 	// no need for sending an answer, but we could set default data to the respective list3/4
 	#ifdef DM_DBG
-	Serial << F("peerAddEvent: pCnl1: ") << pHexB(data[0]) << F(", pCnl2: ") << pHexB(data[1]) << F(", pIdx1: ") << pHexB(data[2]) << F(", pIdx2: ") << pHexB(data[3]) << '\r\n';
+	Serial << F("peerAddEvent: pCnl1: ") << pHexB(data[0]) << F(", pCnl2: ") << pHexB(data[1]) << F(", pIdx1: ") << pHexB(data[2]) << F(", pIdx2: ") << pHexB(data[3]) << "\r\n";
 	#endif
 	
 	if ((data[0]) && (data[1])) {																		// dual peer add
